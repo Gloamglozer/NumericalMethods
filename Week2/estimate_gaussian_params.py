@@ -1,3 +1,7 @@
+#%% [markdown]
+# ## Week 2
+# estimate_gaussian_params
+
 #%%
 import numpy as np
 import timeit
