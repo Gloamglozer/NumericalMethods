@@ -61,6 +61,7 @@ ax1.hist(data[which_data])
 ax2.plot(x,y,color='k')
 plt.show()
         
+#%%
 # Gaussian
 fig,ax1 =plt.subplots()
 ax2 = ax1.twinx()
