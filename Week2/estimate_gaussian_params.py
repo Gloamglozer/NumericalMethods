@@ -43,5 +43,9 @@ def check_params(mean=0,std_dev=1,repeats=1):
         print("\nFrom function:",end='')
         print_params(estimate_gaussian_params(data))
 
-
+#%%
 check_params()
+#%%
+check_params(mean=5,std_dev=10)
+#%%
+check_params(mean=100,std_dev=1)
