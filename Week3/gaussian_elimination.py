@@ -2,7 +2,7 @@
 import numpy as np
 
 def gaussian_elimination(x):
-    '''Takes a square matrix and returns it's inverse using gaussian elimination and back substitution'''
+    '''Takes a augmented matrix `x` and returns it's inverse using gaussian elimination and back substitution'''
     eps = 1e-16
     a = x.copy()
     if a.shape[0]+1 != a.shape[1]:
@@ -10,7 +10,7 @@ def gaussian_elimination(x):
         return
     n = a.shape[0] # num rows 
     for c in range(0,n): # only go up to N because we only do elimination in square part
-        # put partial pivoting here 
+        # TODO put partial pivoting here 
         for r in range(c+1,n):
             piv = a[c,c] # pivot point
             entry = a[r,c] # the value we are trying to eliminate
@@ -21,8 +21,6 @@ def gaussian_elimination(x):
         for r in range(c-1,-1,-1):
             a[r,:] -= a[c,:]*a[r,c] # eliminating each entry in the upper portion of the matrix
     return a
-
-
 
 #%% 
 A = np.arange(1,10,1,dtype=float).reshape((3,3))
