@@ -1,7 +1,16 @@
 #%%
+# making some nice printing functions quick
 import numpy as np
 from pprint import pprint
 np.set_printoptions(precision=4)
+
+def print_dict(d):
+    for k,v in d.items():
+        print(k+':')
+        pprint(v)
+    print()
+    
+
 #%% [markdown]
 ## Gaussian Elimination
 # I was suprised at how straightforward and simple it was to make an algorithm capable of solving large systems of 
@@ -70,7 +79,7 @@ A = np.array([[1,2,1],\
                [3,8,1],\
                [0,4,1]])
 b = np.array([2,12,2]).reshape((3,1))
-pprint(gaussian_elimination(A,b))
+print_dict(gaussian_elimination(A,b))
 
 #%% 
 # Example 12
@@ -78,7 +87,7 @@ A = np.array([[2,6,10],\
                [1,3,3],\
                [3,14,28]])
 b = np.array([0,2,-8]).reshape((3,1))
-pprint(gaussian_elimination(A,b)) # pivot on the haters
+print_dict(gaussian_elimination(A,b)) # pivot on the haters
 #%% [markdown]
 ## LU Decomposition
 # This one posed more of a challenge to me. I realized that $L^{-1}$ was built out of all of 
@@ -136,7 +145,8 @@ A = np.array([[1,2,1],\
 d = my_lu(A)
 L = d["L"]
 U = d["U"]
-pprint(d) # note that L is not lower triangular, but permuted lower triangular
+print_dict(d) # note that L is not lower triangular, but permuted lower triangular
+print("Recomposed:")
 print(L@U)
 
 #%% Example 12
@@ -146,7 +156,8 @@ A = np.array([[2,6,10],\
 d = my_lu(A)
 L = d["L"]
 U = d["U"]
-pprint(d)
+print_dict(d)
+print("Recomposed:")
 print(L@U)
 
 #%% [markdown]
@@ -192,7 +203,8 @@ for size in [3,5,10]:
 
 #%% [markdown]
 # The two are equivalent.
-#%% Showing that column vectors of Q are orthogonal:
+# Showing that column vectors of Q are orthogonal:
+#%% 
 q,r = np.linalg.qr(mag)
 from itertools import combinations
 for a,b in combinations(list(range(5)),2):
@@ -205,8 +217,9 @@ for a,b in combinations(list(range(5)),2):
 eig_vals,eig_vecs = np.linalg.eig(mag)
 pprint(eig_vals)
 pprint(eig_vecs)
-#%% Showing that they are the eigenvectors and values
-
+#%% [markdown]
+# Comparing $ A x $ and $ \lambda x $ 
+#%% 
 for i in range(mag.shape[0]):
     print("{}/ Value of |A*v|: {}".format(i,mag@eig_vecs[:,i]))
     print("{}/ Value of λ:     {}".format(i,eig_vals[i]*eig_vecs[:,i]))
