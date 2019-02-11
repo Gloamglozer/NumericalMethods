@@ -36,9 +36,5 @@ def solve_for_voltage(size,boundaries,cond_S_per_cm= 1000):
 x = solve_for_voltage(100,(1,0))
 plt.plot(x)
 #%%
-import memory_profiler
 
-N_list = np.floor(np.logspace(1,3,10))
-for N in N_list:
-    #%memit solve_for_voltage(100,(1,0))
-    pass
+
