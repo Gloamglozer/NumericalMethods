@@ -36,5 +36,4 @@ def solve_for_voltage(size,boundaries,cond_S_per_cm= 1000):
 x = solve_for_voltage(100,(1,0))
 plt.plot(x)
 #%%
-
-
+    
