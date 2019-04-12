@@ -30,10 +30,10 @@ analytic_soln = (I0-E/R)*np.exp(-(R/L)*t)+E/R
 
 def euler(f,y0,time):
     dt = time[1]-time[0]
-    y = [y0]
+    y = [np.array(y0)]
     for t in time[:-1]:
-        y.append(dt*f(t,y[-1])+y[-1])
-    return y
+        y.append(dt*np.array(f(t,y[-1]))+y[-1])
+    return np.array(y)
 
 plt.plot(t,analytic_soln)
 plt.plot(t,euler(di_dt,I0,t))
@@ -79,10 +79,10 @@ def implicit_euler(f,y_0,time,dy=None,newt_iters=3):
         for _ in range(newt_iters):
             df_dy = (f(t,y+dy/2)-f(t,y-dy/2))/dy
 
-            tol = y- y_last - dt*f(t,y)  # compute difference so tolerance can instead be used
-            y = -f(t,y)/(dt*df_dy-1) + y
+            err = y- y_last - dt*f(t,y)  # compute difference so tolerance can instead be used
 
-            print(abs(tol))
+            y = err/(dt*df_dy-1) + y
+
         Y.append(y)
 
     return Y
@@ -90,6 +90,8 @@ def implicit_euler(f,y_0,time,dy=None,newt_iters=3):
 # plt.plot(di_dt(0,np.arange(0,1,0.1)))
 plt.plot(t,analytic_soln)
 plt.plot(t,implicit_euler(di_dt,I0,t))
+
+# Do fine implicit euler
 
 #%% [markdown]
 ### 4th order Runge-Kutta
@@ -102,10 +104,58 @@ plt.plot(t,numeric_soln.y[0])
 #%% [markdown]
 ## Deliverable 2
 # 
+
 #%%
-a = R/(2*L)
-w0 = 1/np.sqrt(L*C)
-eta = a/w0
-s1 = -a + np.sqrt(a**2-w0**2)
-s2 = -a - np.sqrt(a**2-w0**2)
-I =    
+w = 377
+
+# Initial values
+I0 = 0
+I0p = 0
+V0 = 0
+
+# component values
+L = 0.1
+C = 0.001
+R = 100
+
+
+#%%
+import sympy as sp
+
+s, t = sp.symbols('s, t')
+w = sp.symbols('w', real = True)
+Vt = sp.S("155*sin(377*t)")
+
+Vs,_,_ = sp.laplace_transform(Vt,t,s)
+
+Is = (1/L)*Vs/(s**2+(R/L)*s+1/(L*C))
+
+It = sp.inverse_laplace_transform(Is, s, t)
+#%% [markdown]
+### Plotting analytic solution
+
+#%%
+# plotting constants 
+time = np.linspace(0.0001,0.2,200)
+time_fine = np.linspace(0.0001,0.2,1000)
+#%%
+analytic_soln = [float(sp.re(It.subs({'t':t}))) for t in time]
+plt.plot(time,analytic_soln)
+
+#%%
+def rlc_system(t,y):
+    dv_dt = 155*np.sin(377*t)
+    return [y[1],(1/L)*dv_dt-(R/L)*y[1]-(1/(L*C))*y[0]]
+
+numerical_soln = solve_ivp(rlc_system,(0,0.25),np.array([I0,I0p]),t_eval= time)
+
+plt.plot(time,numerical_soln.y[0])
+plt.plot(time,analytic_soln)
+#%%
+
+numerical_soln = euler(rlc_system,np.array([I0,I0p]),time)
+
+plt.plot(time,numerical_soln[:,0])
+plt.plot(time,analytic_soln)
+
+#%%
