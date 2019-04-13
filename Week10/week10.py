@@ -162,4 +162,74 @@ plt.plot(time,analytic_soln)
 ## Deliverable 3 - Rosenbrock Method
 #
 #%%
+from scipy.linalg import lu,solve_triangular
 
+eps = 0.000000001
+def getJacobian(f,t,x):
+    # %	Calculate Jacobian matrix for vector of ODE described in fcn at t, x
+    # %
+    # %	dFm/dxn|xk = Jmnk = (fm(xk + (eps)^0.5*en) - fm(xk))/eps^0.5
+    # %	en = zeros except at nth element
+
+    # % get fcn val at t and xk
+    f_k = f(t, x)
+    # % get number of unknowns
+    N = length(f_k)
+    # % loop through unknowns
+    # % note that f_k_en = df/dxn as a vector
+    J = np.empty((N,N))
+    for n in range(N): 
+        en = np.zeros(N,1)
+        en[n] = 1			# make a perturbance in 
+
+        f_k_en = fcn( t, x+eps**0.5*en) # get fcn val at x+en*...
+        J[:,n] = (f_k_en - f_k)/eps**0.5 # Using forward difference to evaluate derivative
+    return J,f_k # Return f_k as to not compute it twice
+
+def rosenbrock(f,x0,times):
+    '''Performs Rosenbrock integration in order to solve an IVP'''
+    # definition of constant
+    gamma = 1/2
+    a21 = 2;    a31 = 48/25;    a32 = 6/25
+    ax2 = 1;    ax3 = 3/5;	    ax4 = 3/5
+    c21 = -8;	c31 = 372/25;	c32 = 12/5
+    c41 = -112/125;	c42 = -54/125; c43 = -2/5
+    B1 = 19/9; B2 = 1/2; B3 = 25/108; B4 = 125/108
+
+    xs = [np.array(x0)]
+    dt = times[1]-times[0] 
+    for t in times:
+        x = xs[-1]  		# Get last x 
+        # % get unchanging J per time step
+        J,f_k = getJacobian(f,t,x)
+        df_dt = ( f(x,t+eps**0.5) -f_k)/(eps**0.5) # forward difference for df_dt
+    # 	% setup Ax=b problem, really Ag=f+sum(gs)
+        I = np.eye(J.shape[0]) # make identity with same shape
+        A = 1/(gamma*dt)*I -J
+    # 	% Use LU decomposition for A to use with multiple b's
+        P,L,U = lu(A) 
+    # 	% although the 4th order equations can be written using loops, I will write
+    # 	% them explicitly
+    # 	% i = 1
+        b = f_k + dt*c1*df_dt 
+        y = solve_triangular(L,P@b.reshape((-1,1)))
+        g1 = solve_triangular(U,y)
+    # 	% i = 2
+    	b = f(t+ax2, x+a21*g1) +dt*c2*df_dt+(c21*g1)/dt
+        y = solve_triangular(L,P@b.reshape((-1,1)))
+        g2 = solve_triangular(U,y)
+    # 	% i = 3
+    	b = f(t+ax3, x+a31*g1+a32*g2) +dt*c3*df_dt+(c31*g1+c32*g2)/dt
+        y = solve_triangular(L,P@b.reshape((-1,1)))
+        g3 = solve_triangular(U,y)
+    # 	% i = 4
+    	b = f(t+ax4, x+a41*g1+a42*g2+a43*g3) +dt*c4*df_dt+(c41*g1+c42*g2+c43*g3)/dt
+        y = solve_triangular(L,P@b.reshape((-1,1)))
+        g3 = solve_triangular(U,y)
+    # 	% now get next x
+    	x = x + B1*g1 + B2*g2 + B3*g3 + B4*g4
+
+    return xs
+
+
+#%%
