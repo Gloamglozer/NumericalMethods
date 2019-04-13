@@ -158,4 +158,8 @@ numerical_soln = euler(rlc_system,np.array([I0,I0p]),time)
 plt.plot(time,numerical_soln[:,0])
 plt.plot(time,analytic_soln)
 
+#%% [markdown]
+## Deliverable 3 - Rosenbrock Method
+#
 #%%
+
