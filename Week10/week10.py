@@ -13,12 +13,12 @@ import matplotlib.pyplot as plt
 # Initial values
 
 dt = 0.5
-t = np.arange(0,10,dt)
+time1 = np.arange(0,10,dt)
 
 I0 = 0
 R,L,E = 1,1,1
 di_dt = lambda t,i: (-R*i+E)/L
-analytic_soln = (I0-E/R)*np.exp(-(R/L)*t)+E/R
+analytic_soln1 = (I0-E/R)*np.exp(-(R/L)*time1)+E/R
 
 #%% [markdown]
 ## Deliverable 1
@@ -35,8 +35,8 @@ def euler(f,y0,time):
         y.append(dt*np.array(f(t,y[-1]))+y[-1])
     return np.array(y)
 
-plt.plot(t,analytic_soln)
-plt.plot(t,euler(di_dt,I0,t))
+plt.plot(time1,analytic_soln1)
+plt.plot(time1,euler(di_dt,I0,time1))
 
 #%% [markdown]
 ### Implicit Euler
@@ -88,8 +88,8 @@ def implicit_euler(f,y_0,time,dy=None,newt_iters=3):
     return Y
 
 # plt.plot(di_dt(0,np.arange(0,1,0.1)))
-plt.plot(t,analytic_soln)
-plt.plot(t,implicit_euler(di_dt,I0,t))
+plt.plot(time1,analytic_soln1)
+plt.plot(time1,implicit_euler(di_dt,I0,time1))
 
 # Do fine implicit euler
 
@@ -97,9 +97,9 @@ plt.plot(t,implicit_euler(di_dt,I0,t))
 ### 4th order Runge-Kutta
 
 #%%
-numeric_soln = solve_ivp(di_dt,(0,10),np.array([I0]),t_eval=t)
-plt.plot(t,analytic_soln)
-plt.plot(t,numeric_soln.y[0])
+numeric_soln = solve_ivp(di_dt,(0,10),np.array([I0]),t_eval=time1)
+plt.plot(time1,analytic_soln1)
+plt.plot(time1,numeric_soln.y[0])
 
 #%% [markdown]
 ## Deliverable 2
@@ -139,7 +139,7 @@ It = sp.inverse_laplace_transform(Is, s, t)
 time = np.linspace(0.0001,0.2,200)
 time_fine = np.linspace(0.0001,0.2,1000)
 #%%
-analytic_soln = [float(sp.re(It.subs({'t':t}))) for t in time]
+analytic_soln= [float(sp.re(It.subs({'t':t_}))) for t_ in time]
 plt.plot(time,analytic_soln)
 
 #%%
@@ -164,7 +164,7 @@ plt.plot(time,analytic_soln)
 #%%
 from scipy.linalg import lu,solve_triangular
 
-eps = 0.000000001
+eps = 0.00001
 def getJacobian(f,t,x):
     # %	Calculate Jacobian matrix for vector of ODE described in fcn at t, x
     # %
@@ -174,26 +174,30 @@ def getJacobian(f,t,x):
     # % get fcn val at t and xk
     f_k = f(t, x)
     # % get number of unknowns
-    N = length(f_k)
+    try:
+        N = len(f_k)
+    except TypeError:
+        N = 1 # assume the error is due to it being a scalar and not having len
+
     # % loop through unknowns
     # % note that f_k_en = df/dxn as a vector
     J = np.empty((N,N))
     for n in range(N): 
-        en = np.zeros(N,1)
+        en = np.zeros(N)
         en[n] = 1			# make a perturbance in 
 
-        f_k_en = fcn( t, x+eps**0.5*en) # get fcn val at x+en*...
+        f_k_en = f( t, x+eps**0.5*en) # get fcn val at x+en*...
         J[:,n] = (f_k_en - f_k)/eps**0.5 # Using forward difference to evaluate derivative
     return J,f_k # Return f_k as to not compute it twice
 
 def rosenbrock(f,x0,times):
-    '''Performs Rosenbrock integration in order to solve an IVP'''
-    # definition of constant
     gamma = 1/2
     a21 = 2;    a31 = 48/25;    a32 = 6/25
     ax2 = 1;    ax3 = 3/5;	    ax4 = 3/5
     c21 = -8;	c31 = 372/25;	c32 = 12/5
     c41 = -112/125;	c42 = -54/125; c43 = -2/5
+    # from relevant paper
+    c1 = 0.5; c2 = -1.5; c3 = 2.42; c4 = 0.116 
     B1 = 19/9; B2 = 1/2; B3 = 25/108; B4 = 125/108
 
     xs = [np.array(x0)]
@@ -202,7 +206,7 @@ def rosenbrock(f,x0,times):
         x = xs[-1]  		# Get last x 
         # % get unchanging J per time step
         J,f_k = getJacobian(f,t,x)
-        df_dt = ( f(x,t+eps**0.5) -f_k)/(eps**0.5) # forward difference for df_dt
+        df_dt = ( f(t+eps**0.5,x) -f_k)/(eps**0.5) # forward difference for df_dt
     # 	% setup Ax=b problem, really Ag=f+sum(gs)
         I = np.eye(J.shape[0]) # make identity with same shape
         A = 1/(gamma*dt)*I -J
@@ -215,21 +219,37 @@ def rosenbrock(f,x0,times):
         y = solve_triangular(L,P@b.reshape((-1,1)))
         g1 = solve_triangular(U,y)
     # 	% i = 2
-    	b = f(t+ax2, x+a21*g1) +dt*c2*df_dt+(c21*g1)/dt
+        b = f(t+ax2, x+a21*g1) +dt*c2*df_dt+(c21*g1)/dt
         y = solve_triangular(L,P@b.reshape((-1,1)))
         g2 = solve_triangular(U,y)
     # 	% i = 3
-    	b = f(t+ax3, x+a31*g1+a32*g2) +dt*c3*df_dt+(c31*g1+c32*g2)/dt
+        b = f(t+ax3, x+a31*g1+a32*g2) +dt*c3*df_dt+(c31*g1+c32*g2)/dt
         y = solve_triangular(L,P@b.reshape((-1,1)))
         g3 = solve_triangular(U,y)
     # 	% i = 4
-    	b = f(t+ax4, x+a41*g1+a42*g2+a43*g3) +dt*c4*df_dt+(c41*g1+c42*g2+c43*g3)/dt
+        b = f(t+ax4, x+a31*g1+a32*g2) +dt*c4*df_dt+(c41*g1+c42*g2+c43*g3)/dt
         y = solve_triangular(L,P@b.reshape((-1,1)))
-        g3 = solve_triangular(U,y)
+        g4 = solve_triangular(U,y)
     # 	% now get next x
-    	x = x + B1*g1 + B2*g2 + B3*g3 + B4*g4
+        xs.append( x + B1*g1 + B2*g2 + B3*g3 + B4*g4)
 
-    return xs
+    return np.array(xs[:-1]).reshape((-1,))
+
+
+#%%
+
+# re-defining constants
+dt = 0.5
+time1 = np.arange(0,10,dt)
+
+I0 = 0
+R,L,E = 1,1,1
+di_dt = lambda t,i: (-R*i+E)/L
+
+analytic_soln1 = (I0-E/R)*np.exp(-(R/L)*time1)+E/R
+plt.plot(time1,analytic_soln1)
+plt.plot(time1,rosenbrock(di_dt,I0,time1))
+
 
 
 #%%
