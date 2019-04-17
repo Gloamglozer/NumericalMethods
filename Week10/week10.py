@@ -35,8 +35,25 @@ def euler(f,y0,time):
         y.append(dt*np.array(f(t,y[-1]))+y[-1])
     return np.array(y)
 
-plt.plot(time1,analytic_soln1)
-plt.plot(time1,euler(di_dt,I0,time1))
+plt.title("Explicit Euler: Step = 0.5 s")
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time1,euler(di_dt,I0,time1),label="Numeric")
+plt.legend()
+
+#%% [markdown]
+# The explicit euler method consistently over-predicts the solution. 
+#
+# This is because it is approximating the entire integral of $f(t,x)$ as the product of 
+# the value of $f(t,x)$ and $ dt $, which will over-predict the response for a function with
+# decreasing derivative, and will under-predict the response of the system for a system whose
+# derivative decreases with time. The performance can be improved by decreasing the timestep,
+# however.
+#%%
+time_fine = np.arange(0.0001,10,0.005)
+plt.title("Explicit Euler: Step = 0.005 s")
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time_fine,euler(di_dt,I0,time_fine),label="Numeric")
+plt.legend()
 
 #%% [markdown]
 ### Implicit Euler
@@ -75,7 +92,6 @@ def implicit_euler(f,y_0,time,dy=None,newt_iters=3):
         # Now perform newtons method 
         y_last = Y[-1]
         y = y_last
-        print('time: {}'.format(t))
         for _ in range(newt_iters):
             df_dy = (f(t,y+dy/2)-f(t,y-dy/2))/dy
 
@@ -88,18 +104,31 @@ def implicit_euler(f,y_0,time,dy=None,newt_iters=3):
     return Y
 
 # plt.plot(di_dt(0,np.arange(0,1,0.1)))
-plt.plot(time1,analytic_soln1)
-plt.plot(time1,implicit_euler(di_dt,I0,time1))
+plt.title("Implicit Euler: Step = 0.5 s")
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time1,implicit_euler(di_dt,I0,time1),label="Numeric")
+plt.legend()
 
 # Do fine implicit euler
+#%% [markdown]
+# Just like explicit euler, there is systematic error due to approximating the integral
+# of the time derivative of the function over the interval between timesteps with only
+# one call to the function
+#%%
+plt.title("Implicit Euler: Step = 0.005 s")
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time_fine,implicit_euler(di_dt,I0,time_fine),label="Numeric")
+plt.legend()
+
 
 #%% [markdown]
 ### 4th order Runge-Kutta
 
 #%%
 numeric_soln = solve_ivp(di_dt,(0,10),np.array([I0]),t_eval=time1)
-plt.plot(time1,analytic_soln1)
-plt.plot(time1,numeric_soln.y[0])
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time1,numeric_soln.y[0],label="Numeric")
+plt.legend()
 
 #%% [markdown]
 ## Deliverable 2
@@ -136,8 +165,10 @@ It = sp.inverse_laplace_transform(Is, s, t)
 
 #%%
 # plotting constants 
-time = np.linspace(0.0001,0.2,200)
 time_fine = np.linspace(0.0001,0.2,1000)
+time = np.linspace(0.0001,0.2,200)
+time_coarse = np.linspace(0.0001,0.2,100)
+
 #%%
 analytic_soln= [float(sp.re(It.subs({'t':t_}))) for t_ in time]
 plt.plot(time,analytic_soln)
@@ -145,18 +176,71 @@ plt.plot(time,analytic_soln)
 #%%
 def rlc_system(t,y):
     dv_dt = 155*np.sin(377*t)
-    return [y[1],(1/L)*dv_dt-(R/L)*y[1]-(1/(L*C))*y[0]]
+    return np.array([y[1],(1/L)*dv_dt-(R/L)*y[1]-(1/(L*C))*y[0]])
+#%% [markdown]
+# For this setup, the euler method produces a decent result. I adjusted the time span
+# from 1 second down to 0.2 seconds so I could better see the detail in the graph.
+#
+### Euler Method
+# As shown below, my euler method does pretty well with a 0.001 S time step over 2s.
 
-numerical_soln = solve_ivp(rlc_system,(0,0.25),np.array([I0,I0p]),t_eval= time)
-
-plt.plot(time,numerical_soln.y[0])
-plt.plot(time,analytic_soln)
 #%%
 
 numerical_soln = euler(rlc_system,np.array([I0,I0p]),time)
 
-plt.plot(time,numerical_soln[:,0])
-plt.plot(time,analytic_soln)
+plt.title("RLC Current - Euler Method: Step = 0.001 S")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(time,numerical_soln[:,0],label="Numeric")
+plt.legend()
+#%% [markdown]
+# As one might expect, increasing the timestep to even 0.002 makes the result much poorer
+
+#%%
+
+numerical_soln = euler(rlc_system,np.array([I0,I0p]),time_coarse)
+
+plt.title("RLC Current - Euler Method: Step = 0.002 S")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(time_coarse,numerical_soln[:,0],label="Numeric")
+#%% [markdown]
+# Making the step size 10x coarser than it was at first even leads to numerical instability
+# and explosion of the predicted value of the current
+
+#%%
+
+time_coarsest = np.arange(0.00001,0.2,0.01)
+numerical_soln = euler(rlc_system,np.array([I0,I0p]),time_coarsest)
+
+plt.title("RLC Current - Euler Method: Step = 0.01 S")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(time_coarsest,numerical_soln[:,0],label="Numeric")
+#%% [markdown]
+#  Runge-Kutta has much better performance per time step -- below is the performance of
+# Runga-Kutta for the first and finest time step that was shown just previously with my Euler
+# implementation
+#%%
+
+numerical_soln = solve_ivp(rlc_system,(0,0.25),np.array([I0,I0p]),t_eval= time)
+
+plt.title("RLC Current - Runge-Kutta: Step = 0.001 S")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(time,numerical_soln.y[0],label="Numeric")
+plt.legend()
+#%% [markdown]
+# Runge-Kutta also made a much better prediciton for a time step that was very coarse
+# relative to the features of the solution. Below shows the numerical solution for 
+# a time step of 0.01 , which made the euler method's response explode
+#%%
+
+rk_times = np.arange(0.0001,0.2,0.01)
+
+numerical_soln = solve_ivp(rlc_system,(0,0.25),np.array([I0,I0p]),t_eval= rk_times)
+
+plt.title("RLC Current - Runge-Kutta: Step = 0.01 S")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(rk_times,numerical_soln.y[0],label="Numeric")
+plt.legend()
+
 
 #%% [markdown]
 ## Deliverable 3 - Rosenbrock Method
@@ -211,31 +295,76 @@ def rosenbrock(f,x0,times):
         I = np.eye(J.shape[0]) # make identity with same shape
         A = 1/(gamma*dt)*I -J
     # 	% Use LU decomposition for A to use with multiple b's
-        P,L,U = lu(A) 
+        L,U = lu(A,permute_l=True) 
+        # P_inv = np.linalg.inv(P)
     # 	% although the 4th order equations can be written using loops, I will write
     # 	% them explicitly
     # 	% i = 1
         b = f_k + dt*c1*df_dt 
-        y = solve_triangular(L,P@b.reshape((-1,1)))
-        g1 = solve_triangular(U,y)
+        y = np.linalg.solve(L,(b.reshape((-1,1))))
+        g1 = solve_triangular(U,y).reshape((-1,))
     # 	% i = 2
         b = f(t+ax2, x+a21*g1) +dt*c2*df_dt+(c21*g1)/dt
-        y = solve_triangular(L,P@b.reshape((-1,1)))
-        g2 = solve_triangular(U,y)
+        y = np.linalg.solve(L,b.reshape((-1,1)))
+        g2 = solve_triangular(U,y).reshape((-1,))
     # 	% i = 3
         b = f(t+ax3, x+a31*g1+a32*g2) +dt*c3*df_dt+(c31*g1+c32*g2)/dt
-        y = solve_triangular(L,P@b.reshape((-1,1)))
-        g3 = solve_triangular(U,y)
+        y = np.linalg.solve(L,b.reshape((-1,1)))
+        g3 = solve_triangular(U,y).reshape((-1,))
     # 	% i = 4
         b = f(t+ax4, x+a31*g1+a32*g2) +dt*c4*df_dt+(c41*g1+c42*g2+c43*g3)/dt
-        y = solve_triangular(L,P@b.reshape((-1,1)))
-        g4 = solve_triangular(U,y)
+        y = np.linalg.solve(L,b.reshape((-1,1)))
+        g4 = solve_triangular(U,y).reshape((-1,))
     # 	% now get next x
         xs.append( x + B1*g1 + B2*g2 + B3*g3 + B4*g4)
 
-    return np.array(xs[:-1]).reshape((-1,))
+    return np.array(xs[:-1])
 
 
+#%% [markdown]
+### Testing for ODE 2
+#%%
+
+w = 377
+
+# Initial values
+I0 = 0
+I0p = 0
+V0 = 0
+
+# component values
+L = 0.1
+C = 0.001
+R = 100
+
+time = np.linspace(0.0001,0.2,200)
+
+numerical_soln = rosenbrock(rlc_system,np.array([I0,I0p]),time)
+
+
+plt.title("RLC Current - Rosenbrock Method")
+plt.plot(time,analytic_soln,label="Analytic")
+plt.plot(time,numerical_soln[:,0],label="Rosenbrock")
+plt.legend()
+
+#%% [markdown]
+# Comparing Solution Time to Runge-Kutta
+#%%
+time = np.linspace(0.0001,0.2,50)
+
+rb = rosenbrock(rlc_system,np.array([I0,I0p]),time)
+rk45 = solve_ivp(rlc_system,t_span=(0,0.5),y0=np.array([I0,I0p]),t_eval=time)
+rk23 = solve_ivp(rlc_system,t_span=(0,0.5),y0=np.array([I0,I0p]),t_eval=time,method='RK23')
+
+plt.title("RLC Current - Numeric Comparison")
+plt.plot(np.linspace(0.0001,0.2,200) ,analytic_soln,label="Analytic")
+plt.plot(time,rk45.y[0],label="Runge-Kutta 4 5")
+plt.plot(time,rk23.y[0],label="Runge-Kutta 2 3")
+plt.plot(time,rb[:,0],label="Rosenbrock")
+plt.legend()
+
+#%% [markdown]
+### Testing for ODE 1
 #%%
 
 # re-defining constants
@@ -247,9 +376,25 @@ R,L,E = 1,1,1
 di_dt = lambda t,i: (-R*i+E)/L
 
 analytic_soln1 = (I0-E/R)*np.exp(-(R/L)*time1)+E/R
-plt.plot(time1,analytic_soln1)
-plt.plot(time1,rosenbrock(di_dt,I0,time1))
 
+plt.plot(time1,analytic_soln1,label="Analytic")
+plt.plot(time1,rosenbrock(di_dt,I0,time1),label="Numeric")
+plt.legend()
+
+#%% [markdown]
+# Comparing Solution Time to Runge-Kutta
+#%%
+
+rb = rosenbrock(di_dt,I0,time1)
+rk45 = solve_ivp(di_dt,t_span=(-0.01,11),y0=np.array([I0]),t_eval=time1)
+rk23 = solve_ivp(di_dt,t_span=(-0.01,11),y0=np.array([I0]),t_eval=time1,method='RK23')
+
+plt.title("RLC Current - Numeric Comparison")
+plt.plot(time1 ,analytic_soln1,label="Analytic")
+plt.plot(time1,rk45.y[0],label="Runge-Kutta 4 5")
+plt.plot(time1,rk23.y[0],label="Runge-Kutta 2 3")
+plt.plot(time1,rb,label="Rosenbrock")
+plt.legend()
 
 
 #%%
